@@ -1,46 +1,48 @@
 pipeline {
     agent any
 
-    environment {
-        DOCKER_IMAGE = "siva123/meesho-website:v1"   // Change with your DockerHub repo
-    }
-
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/siva-123-hash/meesho-website.git'
+               git branch: 'main', url:'https://github.com/siva-123-hash/meesho-website.git'
             }
-        }
-
-        stage('Build with Maven') {
+        } 
+        stage('Build') {
             steps {
                 sh 'mvn clean package -DskipTests'
             }
         }
 
+
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $DOCKER_IMAGE .'
+                script {
+                    sh 'docker build -t siva0927/meesho:v1 .'
+                }
             }
         }
 
         stage('Push to DockerHub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'siva0927-dockerhub',
-                                                  usernameVariable: 'DOCKER_USER',
-                                                  passwordVariable: 'DOCKER_PASS')]) {
-                    sh '''
-                      echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                      docker push $DOCKER_IMAGE
-                    '''
+                withCredentials([usernamePassword(credentialsId: 'siva0927-dockerhub', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                    sh "echo $PASS | docker login -u $USER --password-stdin"
+                    sh "docker push siva0927/meesho:v1"
                 }
             }
         }
 
-        stage('Deploy Container') {
+        stage('Run Container (Local Test)') {
             steps {
-                sh 'docker rm -f meesho-app || true'
-                sh 'docker run -d --name meesho-app -p 8081:8080 $DOCKER_IMAGE'
+                sh 'docker run -d -p 8081:8080 --name meesho-test siva0927/meesho:v1 || true'
+            }
+        }
+
+        stage('Deploy to Docker Swarm') {
+            steps {
+                sh '''
+                docker service rm samsung-site || true
+                docker service create --name meesho-site -p 8081:8080 siva0927/meesho:v1
+                '''
             }
         }
     }

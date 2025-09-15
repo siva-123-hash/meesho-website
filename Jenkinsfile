@@ -40,7 +40,7 @@ ipipeline {
         stage('Deploy Container') {
             steps {
                 sh 'docker rm -f meesho-app || true'
-                sh 'docker run -d --name meesho-app -p 8080:8080 $DOCKER_IMAGE'
+                sh 'docker run -d --name meesho-app -p 8081:8080 $DOCKER_IMAGE'
             }
         }
     }
